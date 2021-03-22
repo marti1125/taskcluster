@@ -205,6 +205,67 @@ All timestamp arithmetic should be performed with the built-in `time` package.
 
 To generate SlugIDs, such as for TaskIDs, use [github.com/taskcluster/slugid-go](https://github.com/taskcluster/slugid-go).
 
+### Uploading and Downloading Objects
+
+The Object service provides an API for reliable uploads and downloads of large
+objects (files). This library provides convenience methods to implement the
+client portion of those APIs, providing well-tested, resilient upload and
+download functionality. These methods will negotiate the appropriate method
+with the object service and perform the required steps to transfer the data.
+
+In either case, you will need a `tcobject.Object` with appropriate credentials
+for the operation.  You must also provide a `io.ReadSeeker` for uploads or a
+`io.WriteSeeker` for downloads to handle the object data, however for the
+common case of uploading or downloading a file directly from the file system,
+the utility functions `FileUploader` and `FileDownloader` can be used. Seeking
+is required in order to reset the reader/writer between retries.
+
+The configurable httpbackoff settings of tcobject.Object for the API call methods
+are also used for the `Upload.*` and `Download.*` methods.
+
+For upload:
+
+```go
+object := tcobject.New()
+buf := []byte{"Hello I am data to upload"}
+err := object.UploadFromBuf(projectID, name, contentType, expires, buf)
+```
+
+or:
+
+```go
+object := tcobject.New()
+err := object.UploadFromFile(projectID, name, contentType, expires, filepath)
+```
+
+or:
+
+```go
+object := tcobject.New()
+err := object.UploadFromReadSeeker(projectID, name, contentType, contentLength, expires, readSeeker)
+```
+
+For download:
+
+```go
+object := tcobject.New()
+data, contentType, contentLength, err := object.DownloadToBuf(name)
+```
+
+or:
+
+```go
+object := tcobject.New()
+contentType, contentLength, err := object.DownloadToFile(name, filepath)
+```
+
+or:
+
+```go
+object := tcobject.New()
+contentType, contentLength, err := object.DownloadToWriteSeeker(name, writeSeeker)
+```
+
 ## Compatibility
 
 This library is co-versioned with Taskcluster itself.
